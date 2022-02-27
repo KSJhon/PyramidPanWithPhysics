@@ -46,22 +46,22 @@ ckpt = "pretrained/bestQB(mode0).pth"
 ckpt = "pretrained/bestWV3(mode3).pth"
 # sam: 4.12±1.29, ergas: 2.72±0.81
 # psnr: 34.78±3.50, ssim: 0.95±0.04
-ckpt = "pretrained/bestWV3(mode0).pth"
+# ckpt = "pretrained/bestWV3(mode0).pth"
 # sam: 4.15±1.30, ergas: 2.75±0.82
 # psnr: 34.68±3.49, ssim: 0.95±0.04
-ckpt = "pretrained/bestWV3(sp1).pth"
+# ckpt = "pretrained/bestWV3(sp1).pth"
 # sam: 4.18±1.30, ergas: 2.80±0.83
 # psnr: 34.52±3.47, ssim: 0.95±0.04
-ckpt = "pretrained/bestWV3(sp2).pth"
+# ckpt = "pretrained/bestWV3(sp2).pth"
 # sam: 4.14±1.30, ergas: 2.73±0.82
 # psnr: 34.74±3.50, ssim: 0.95±0.04
-ckpt = "pretrained/bestWV3(sp4).pth"
+# ckpt = "pretrained/bestWV3(sp4).pth"
 # sam: 4.12±1.30, ergas: 2.74±0.82
 # psnr: 34.72±3.51, ssim: 0.95±0.04
 
 def test(file_path):
     lms, pan, gt, ums = load_myset(file_path)
-    model = PyramidInjection(ms_channels, 4).to(device).eval()
+    model = PyramidInjection(ms_channels, 3).to(device).eval()
     weight = torch.load(ckpt)
     model.load_state_dict(weight)
     fo = open("result.txt", "a")

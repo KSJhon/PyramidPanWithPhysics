@@ -5,6 +5,7 @@ from models import PyramidInjection
 import h5py
 import scipy.io as sio
 import os
+import time
 import statistics
 from PIL import Image
 import scipy.io as sio
@@ -97,8 +98,13 @@ def test(file_path):
 
             pan_ = pan_.unsqueeze(0)
             ums_ = ums_.unsqueeze(0)
-            sr = model(ums_, pan_)  # tensor type: sr = NxCxHxW
 
+            start = time.time()
+            sr = model(ums_, pan_)  # tensor type: sr = NxCxHxW
+            end = time.time()
+            
+            ### print testing time
+            print("Testing [%d] time: [%f]" % (index, end - start))
             ### save result to mat file.
             if 0:
                 sr_nd = sr.permute(0, 2, 3, 1).cpu().detach().numpy()  # to: NxHxWxC

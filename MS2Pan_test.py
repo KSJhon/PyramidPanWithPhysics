@@ -32,24 +32,17 @@ def load_set(file_path):
     return hms, pan
 
 # ==============  Main test  ================== #
-ckpt = "pretrained/ms2panQB.pth"
-# psnr: 43.92±3.48, ssim: 0.98±0.01 for new 500ge 64x64
-ckpt = "pretrained/ms2panGF2.pth"
-# psnr: 37.76±3.89, ssim: 0.91±0.07 for new 500ge 64x64
-ckpt = "pretrained/ms2panWV2.pth"
-# psnr: 48.28±4.63, ssim: 0.99±0.01 for new 500ge 64x64
-# psnr: 48.45±4.98, ssim: 0.99±0.01 for tra 5000ge 32x32
-ckpt = "pretrained/ms2panWV3.pth"
-# psnr: 38.75±3.99, ssim: 0.97±0.05 for new 500ge 64x64
+ckpt = "pretrained/ms2pan%s.pth" % (sensor)
+
 def test(file_path):
-    lms, pan = load_set(file_path)
+    hms, pan = load_set(file_path)
     model = MS2PAN(ms_channels).cuda().eval()
     weight = torch.load(ckpt)
     model.load_state_dict(weight)
 
     with torch.no_grad():
 
-        x1, x2 = lms, pan   # read data: CxHxW (numpy type)
+        x1, x2 = hms, pan   # read data: CxHxW (numpy type)
         print(x1.shape)
         x1 = x1.cuda().float()  # convert to tensor type:
         x2 = x2.cuda().float()  # convert to tensor type:
@@ -84,5 +77,7 @@ def test(file_path):
 # ------------------- Main Function (Run first) -------------------
 ###################################################################
 if __name__ == '__main__':
-    file_path = "../data/new_tst(WV3)_0064-0064.h5"
+
+    file_path = "../data/tst(%s)_0064-0064.h5" % (sensor)
+
     test(file_path)

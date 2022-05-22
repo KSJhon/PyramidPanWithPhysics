@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.optim as optim
 from DatasetProc import *
 from torch.utils.data import DataLoader
-from PhysicPanModels import MS2PAN_Simpler
+from PhysicPanModels import MS2PAN
 import copy
 from torch.utils.tensorboard import SummaryWriter
 from util import *
@@ -22,7 +22,7 @@ pix_max_val = 1023. if sensor == "GF2" else 2047.
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu") #os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 # device = torch.device("cuda:1")
-model = MS2PAN_Simpler(ms_channels).to(device)
+model = MS2PAN(ms_channels).to(device)
 
 loss_func = nn.SmoothL1Loss()
 optimizer = torch.optim.Adam(model.parameters(), lr=lr)
@@ -109,12 +109,12 @@ def seed_worker(worker_id):
     random.seed(worker_seed)
 if __name__ == "__main__":
 
-    train_set = DatasetProc4Physic('../data/new_tra(GF2)_0032-0032.h5', pix_max_val)  # creat data for training
+    train_set = DatasetProc4Physic('../data/tra(%s)_0032-0032.h5' % (sensor), pix_max_val)  # creat data for training
 
     training_data_loader = DataLoader(dataset=train_set, num_workers=0, batch_size=batch_size, shuffle=True,
                                       pin_memory=True, drop_last=True, worker_init_fn=seed_worker)
 
-    validate_set = DatasetProc4Physic('../data/new_val(GF2)_0032-0032.h5', pix_max_val)  # creat data for validation
+    validate_set = DatasetProc4Physic('../data/val(%s)_0032-0032.h5' % (sensor), pix_max_val)  # creat data for validation
     validate_data_loader = DataLoader(dataset=validate_set, num_workers=0, batch_size=batch_size, shuffle=False,
                                       pin_memory=True, drop_last=True, worker_init_fn=seed_worker)
 

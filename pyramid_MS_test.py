@@ -18,47 +18,7 @@ pix_max_val = 1023. if sensor == "GF2" else 2047.
 showingIndices = [4, 2, 1] if sensor == "WV3" else [2, 1, 0]
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
-ckpt = "pretrained/bestQB(mode3).pth"
-# sam: 1.19±0.34, ergas: 0.83±0.24
-# psnr: 45.92±3.65, ssim: 0.98±0.01
-ckpt = "pretrained/bestQB(mode0).pth"
-# sam: 1.20±0.35, ergas: 0.84±0.24
-# psnr: 45.89±3.67, ssim: 0.98±0.01
-
-# ckpt = "pretrained/bestGF2(mode3).pth"
-# sam: 1.09±0.41, ergas: 1.11±0.64
-# psnr: 40.12±4.34, ssim: 0.96±0.03
-# ckpt = "pretrained/bestGF2(sp4).pth"
-# sam: 1.18±0.44, ergas: 1.24±0.66
-# psnr: 39.14±4.19, ssim: 0.95±0.03
-# ckpt = "pretrained/bestGF2(sp2).pth"
-# sam: 1.11±0.42, ergas: 1.12±0.62
-# psnr: 40.02±4.25, ssim: 0.96±0.03
-# ckpt = "pretrained/bestGF2(mode0).pth"
-# sam: 1.12±0.42, ergas: 1.15±0.63
-# psnr: 39.76±4.21, ssim: 0.96±0.03
-
-# ckpt = "pretrained/bestWV2(mode3).pth"
-# sam: 1.32±0.58, ergas: 1.02±0.26
-# psnr: 42.36±4.62, ssim: 0.98±0.01
-# ckpt = "pretrained/bestWV2(mode0).pth"
-# sam: 1.33±0.58, ergas: 1.04±0.28
-# psnr: 42.21±4.69, ssim: 0.97±0.01
-ckpt = "pretrained/bestWV3(mode3).pth"
-# sam: 4.12±1.29, ergas: 2.72±0.81
-# psnr: 34.78±3.50, ssim: 0.95±0.04
-# ckpt = "pretrained/bestWV3(mode0).pth"
-# sam: 4.15±1.30, ergas: 2.75±0.82
-# psnr: 34.68±3.49, ssim: 0.95±0.04
-# ckpt = "pretrained/bestWV3(sp1).pth"
-# sam: 4.18±1.30, ergas: 2.80±0.83
-# psnr: 34.52±3.47, ssim: 0.95±0.04
-# ckpt = "pretrained/bestWV3(sp2).pth"
-# sam: 4.14±1.30, ergas: 2.73±0.82
-# psnr: 34.74±3.50, ssim: 0.95±0.04
-# ckpt = "pretrained/bestWV3(sp4).pth"
-# sam: 4.12±1.30, ergas: 2.74±0.82
-# psnr: 34.72±3.51, ssim: 0.95±0.04
+ckpt = "pretrained/best%s(mode3).pth" % (sensor)
 
 def test(file_path):
     lms, pan, gt, ums = load_myset(file_path)
@@ -92,6 +52,7 @@ def test(file_path):
         ergas = []
         psnr = []
         ssim = []
+		times = []
         for index in range(num_exm):  # save the DL results to the 03-Comparisons(Matlab)
             pan_ = pan[index]
             ums_ = ums[index]
@@ -109,15 +70,16 @@ def test(file_path):
             if 0:
                 sr_nd = sr.permute(0, 2, 3, 1).cpu().detach().numpy()  # to: NxHxWxC
                 file_name = str(index) + ".mat"
-                file_name2 = os.getcwd() + "/results({})".format(sensor)
-                mkdir(file_name2)
-                file_name2 = file_name2 + "/mode3(SP3)"
-                mkdir(file_name2)
-                save_name = os.path.join(file_name2, file_name)
+                file_path = os.getcwd() + "/results({})".format(sensor)
+                mkdir(file_path)
+                file_path = file_path + "/mode3(SP3)"
+                mkdir(file_path)
+                save_name = os.path.join(file_path, file_name)
                 sio.savemat(save_name, {'ms_est': sr_nd[0, :, :, :] * pix_max_val})
             #### end of saving
 
             ### calculate some metrics and storing
+			times.append((end - start) * 1000)
             psnr.append(calculate_psnr(sr.squeeze().permute(1, 2, 0).cpu().numpy(),
                                        gt[index, :, :, :].permute(1, 2, 0).cpu().numpy(), dynamic_range=1))
             ssim.append(calculate_ssim(sr.squeeze().permute(1, 2, 0).cpu().numpy(),
@@ -134,19 +96,14 @@ def test(file_path):
         ### print statistics of metrics
         print("sam: %.2f%s%.2f, ergas: %.2f%s%.2f" % (statistics.mean(sam), "\u00B1", statistics.stdev(sam), statistics.mean(ergas), "\u00B1", statistics.stdev(ergas)))
         print("psnr: %.2f%s%.2f, ssim: %.2f%s%.2f" % (statistics.mean(psnr), "\u00B1", statistics.stdev(psnr), statistics.mean(ssim), "\u00B1", statistics.stdev(ssim)))
-
+		
+		times.pop(0)
+        print("avg. running time:%.3f" % (statistics.mean(times)))
     fo.close()
     ###################################################################
 # ------------------- Main Function (Run first) -------------------
 ###################################################################
 if __name__ == '__main__':
+	file_path = "../data/tst(%s)_0064-0064.h5" % (sensor)
+    test(file_path)
 
-    # test("../data/_tst(WV3)_0064-0064.h5")
-    # test("../data/_tst(WV2)_0064-0064.h5")
-    # test("../data/_tst(QB)_0064-0064_0.h5")
-    # test("../data/new_tst(QB)_0064-0064.h5")
-    # test("../data/new_tst(WV2)_0064-0064.h5")
-    # test("../data/new_tst(WV2)_0064-0064.h5")
-    test("../data/new_tst(WV3)_0064-0064.h5")
-    # test("../data/large_tst(WV3)_0128-0128.h5")
-    # test("../data/validation1.mat")

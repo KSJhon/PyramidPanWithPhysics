@@ -13,7 +13,7 @@ from torchvision.utils import make_grid
 from torchviz import make_dot # pip install torchviz ( conda install -c anaconda urllib3 )
 import torch.nn.functional as F
 import torch.nn as nn
-
+from scipy.ndimage import generic_laplace,uniform_filter,correlate,gaussian_filter
 ###########
 # visdom
 ###########
@@ -453,7 +453,7 @@ def downgrade_ms_images(I_MS, I_PAN, ratio, sensor):
     if flag_resize_new == 1:
         I_MS_LP = np.zeros((I_MS.shape[0], int(np.round(I_MS.shape[1] / ratio) + ratio), int(np.round(I_MS.shape[2] / ratio) + ratio)))
 
-        for idim in xrange(I_MS.shape[0]):
+        for idim in range(I_MS.shape[0]):
             imslp_pad = np.pad(I_MS[idim, :, :], int(2 * ratio), 'symmetric')
             I_MS_LP[idim, :, :] = misc.imresize(imslp_pad, 1 / ratio, 'bicubic', mode='F')
 
@@ -466,7 +466,7 @@ def downgrade_ms_images(I_MS, I_PAN, ratio, sensor):
         I_MS_LP = np.zeros(I_MS.shape)
         fcut = 1 / ratio
 
-        for j in xrange(I_MS.shape[0]):
+        for j in range(I_MS.shape[0]):
             # fir filter with window method
             alpha = np.sqrt(((N - 1) * (fcut / 2)) ** 2 / (-2 * np.log(GNyq[j])))
             H = gaussian2d(N, alpha)
@@ -643,6 +643,46 @@ def calculate_scc(img1, img2):
     else:
         raise ValueError('Wrong input image dimensions.')
 
+def Q4(ms, ps):
+    def conjugate(a):
+        sign = -1 * np.ones(a.shape)
+        sign[0,:]=1
+        return a*sign
+    def product(a, b):
+        a = a.reshape(a.shape[0],1)
+        b = b.reshape(b.shape[0],1)
+        R = np.dot(a, b.transpose())
+        r = np.zeros(4)
+        r[0] = R[0, 0] - R[1, 1] - R[2, 2] - R[3, 3]
+        r[1] = R[0, 1] + R[1, 0] + R[2, 3] - R[3, 2]
+        r[2] = R[0, 2] - R[1, 3] + R[2, 0] + R[3, 1]
+        r[3] = R[0, 3] + R[1, 2] - R[2, 1] + R[3, 0]
+        return r
+    imps = np.copy(ps)
+    imms = np.copy(ms)
+    vec_ps = imps.reshape(imps.shape[1]*imps.shape[0], imps.shape[2])
+    vec_ps = vec_ps.transpose(1,0)
+
+    vec_ms = imms.reshape(imms.shape[1]*imms.shape[0], imms.shape[2])
+    vec_ms = vec_ms.transpose(1,0)
+
+    m1 = np.mean(vec_ps, axis=1)
+    d1 = (vec_ps.transpose(1,0)-m1).transpose(1,0)
+    s1 = np.mean(np.sum(d1*d1, axis=0))
+
+    m2 = np.mean(vec_ms, axis=1)
+    d2 = (vec_ms.transpose(1, 0) - m2).transpose(1, 0)
+    s2 = np.mean(np.sum(d2 * d2, axis=0))
+
+    Sc = np.zeros(vec_ms.shape)
+    d2 = conjugate(d2)
+    for i in range(vec_ms.shape[1]):
+        Sc[:,i] = product(d1[:,i], d2[:,i])
+    C = np.mean(Sc, axis=1)
+
+    Q4 = 4 * np.sqrt(np.sum(m1*m1) * np.sum(m2*m2) * np.sum(C*C)) / (s1 + s2) / (np.sum(m1 * m1) + np.sum(m2 * m2))
+    return Q4
+
 
 def qindex(img1, img2, block_size=8):
     """Q-index for 2D (one-band) image, shape (H, W); uint or float [0, 1]
@@ -773,6 +813,70 @@ def calculate_ergas(img_fake, img_real, scale=4):
         raise ValueError('Wrong input image dimensions.')
 
 
+def Q(a, b):
+    a = a.reshape(a.shape[0] * a.shape[1])
+    b = b.reshape(b.shape[0] * b.shape[1])
+    temp = np.cov(a, b)
+    d1 = temp[0, 0]
+    cov = temp[0, 1]
+    d2 = temp[1, 1]
+    m1 = np.mean(a)
+    m2 = np.mean(b)
+    Q = 4 * cov * m1 * m2 / (d1 + d2) / (m1 ** 2 + m2 ** 2)
+
+    return Q
+
+def calculate_Q(a, b):  # N x H x W
+    E_a = torch.mean(a, dim=(1, 2))
+    E_a2 = torch.mean(a * a, dim=(1, 2))
+    E_b = torch.mean(b, dim=(1, 2))
+    E_b2 = torch.mean(b * b, dim=(1, 2))
+    E_ab = torch.mean(a * b, dim=(1, 2))
+
+    var_a = E_a2 - E_a * E_a
+    var_b = E_b2 - E_b * E_b
+    cov_ab = E_ab - E_a * E_b
+
+    return torch.mean(4 * cov_ab * E_a * E_b / (var_a + var_b) / (E_a ** 2 + E_b ** 2))
+
+
+def _uqi_single(GT,P,ws):
+	N = ws**2
+	window = np.ones((ws,ws))
+
+	GT_sq = GT*GT
+	P_sq = P*P
+	GT_P = GT*P
+
+	GT_sum = uniform_filter(GT, ws)
+	P_sum =  uniform_filter(P, ws)
+	GT_sq_sum = uniform_filter(GT_sq, ws)
+	P_sq_sum = uniform_filter(P_sq, ws)
+	GT_P_sum = uniform_filter(GT_P, ws)
+
+	GT_P_sum_mul = GT_sum*P_sum
+	GT_P_sum_sq_sum_mul = GT_sum*GT_sum + P_sum*P_sum
+	numerator = 4*(N*GT_P_sum - GT_P_sum_mul)*GT_P_sum_mul
+	denominator1 = N*(GT_sq_sum + P_sq_sum) - GT_P_sum_sq_sum_mul
+	denominator = denominator1*GT_P_sum_sq_sum_mul
+
+	q_map = np.ones(denominator.shape)
+	index = np.logical_and((denominator1 == 0) , (GT_P_sum_sq_sum_mul != 0))
+	q_map[index] = 2*GT_P_sum_mul[index]/GT_P_sum_sq_sum_mul[index]
+	index = (denominator != 0)
+	q_map[index] = numerator[index]/denominator[index]
+
+	s = int(np.round(ws/2))
+	return np.mean(q_map[s:-s,s:-s])
+
+def uqi (GT,P,ws=8):
+	"""calculates universal image quality index (uqi).
+	:param GT: first (original) input image.
+	:param P: second (deformed) input image.
+	:param ws: sliding window size (default = 8).
+	:returns:  float -- uqi value.
+	"""
+	return np.mean([_uqi_single(GT[:,:,i],P[:,:,i],ws) for i in range(GT.shape[2])])
 # No reference
 
 ##################

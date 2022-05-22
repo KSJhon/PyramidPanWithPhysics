@@ -33,20 +33,7 @@ def load_set(file_path):
 
 # ==============  Main test  ================== #
 
-ckpt = "pretrained/hr2lrWV3.pth"
-# sam: 0.93±0.49, ergas: 1.26±0.66
-# psnr: 42.59±5.47, ssim: 0.99±0.01
-# ckpt = "pretrained/hr2lrQB.pth"
-# sam: 0.36±0.20, ergas: 0.36±0.23
-# psnr: 54.43±6.89, ssim: 1.00±0.01
-# ckpt = "pretrained/hr2lrWV2.pth"
-# sam: 0.11±0.26, ergas: 0.13±0.14
-# psnr: 62.78±5.24, ssim: 1.00±0.00
-# ckpt = "pretrained/hr2lrGF2.pth"
-# sam: 0.44±0.22, ergas: 0.56±0.30
-# psnr: 46.19±4.98, ssim: 0.99±0.01
-
-
+ckpt = "pretrained/hr2lr%s.pth" % (sensor)
 def test(file_path):
     lms, hms = load_set(file_path)
 
@@ -77,6 +64,15 @@ def test(file_path):
             sam.append(calculate_sam(res.squeeze().permute(1, 2, 0).cpu().numpy(),
                                      x2[index, :, :, :].permute(1, 2, 0).cpu().numpy()) * 180 / math.pi)
 
+            if 1:
+                sr_nd = res.permute(0, 2, 3, 1).cpu().detach().numpy()  # to: NxHxWxC
+                file_name1 = os.getcwd() + "/H2L_results({})".format(sensor)
+
+
+                mkdir(file_name1)
+
+                save_name1 = os.path.join(file_name1, file_name)
+                sio.savemat(save_name1, {'m2l_est': sr_nd[0, :, :, :] * pix_max_val})
         print("sam: %.2f%s%.2f, ergas: %.2f%s%.2f" % (
                 statistics.mean(sam), "\u00B1", statistics.stdev(sam), statistics.mean(ergas), "\u00B1",
                 statistics.stdev(ergas)))
@@ -90,5 +86,5 @@ def test(file_path):
 ###################################################################
 if __name__ == '__main__':
 
-    file_path = "../data/new_tst(WV3)_0064-0064.h5"
+	file_path = "../data/tst(%s)_0064-0064.h5" % (sensor)
     test(file_path)

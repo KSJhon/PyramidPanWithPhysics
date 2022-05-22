@@ -20,7 +20,7 @@ pix_max_val = 1023. if sensor == "GF2" else 2047.
 
 os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-# device = torch.device("cuda:1")s
+# device = torch.device("cuda:1")
 print_gpu_status(device)
 
 model = HR2LRMS(ms_channels).to(device)
@@ -101,12 +101,12 @@ def train(training_data_loader, validate_data_loader, start_epoch=0):
 
 
 if __name__ == "__main__":
-    train_set = DatasetProc4Physic('../data/new_tra(GF2)_0032-0032.h5', pix_max_val)  # creat data for training
+    train_set = DatasetProc4Physic('../data/tra(%s)_0032-0032.h5' % (sensor), pix_max_val)  # creat data for training
 
     training_data_loader = DataLoader(dataset=train_set, num_workers=0, batch_size=batch_size, shuffle=True,
                                       pin_memory=True, drop_last=True)  # put training data to DataLoader for batches
 
-    validate_set = DatasetProc4Physic('../data/new_val(GF2)_0032-0032.h5', pix_max_val)  # creat data for validation
+    validate_set = DatasetProc4Physic('../data/val(%s)_0032-0032.h5' % (sensor), pix_max_val)  # creat data for validation
     validate_data_loader = DataLoader(dataset=validate_set, num_workers=0, batch_size=batch_size, shuffle=False,
                                       pin_memory=True, drop_last=True)  # put training data to DataLoader for batches
 

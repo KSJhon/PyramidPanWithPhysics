@@ -44,8 +44,8 @@ model_hr2lr = HR2LRMS(ms_channels).to(device)
 weight_hr2lr = torch.load("pretrained/hr2lr"+sensor+".pth", map_location=device)
 model_hr2lr.load_state_dict(weight_hr2lr)
 
-loss_func0 = nn.SmoothL1Loss(reduction='mean')
-loss_func = nn.MSELoss(reduction='mean')
+loss_L1 = nn.SmoothL1Loss(reduction='mean')
+loss_L2 = nn.MSELoss(reduction='mean')
 optimizer = torch.optim.Adam(model.parameters(), lr=lr_start)
 
 def save_checkpoint(model, epoch, optimer):  # save model function
@@ -81,22 +81,22 @@ def adjust_coef(coefInit, epoch):
 
 
 def get_loss(loss_mode, res, gt, pan, lms):
-    loss = loss_func(res, gt)  # if lossMode == 0:
+    loss = loss_L2(res, gt)  # if lossMode == 0:
     loss_ms2pan = torch.tensor(0.)
     loss_ms2ls = torch.tensor(0.)
     if loss_mode == 1: # MS2PAN
         fake_pan = model_ms2pan(res)  # tensor type: res = NxCxHxW
         fake_pan = fake_pan.clip(0, 1)
-        loss_ms2pan = loss_func0(fake_pan, pan)
+        loss_ms2pan = loss_L1(fake_pan, pan)
     elif loss_mode == 2:
         fake_lms = model_hr2lr(res)  #  fake_hms = res
-        loss_ms2ls = loss_func0(fake_lms, lms)
+        loss_ms2ls = loss_L1(fake_lms, lms)
     elif loss_mode == 3:
         fake_pan = model_ms2pan(res)  # tensor type: res = NxCxHxW
-        loss_ms2pan = loss_func0(fake_pan, pan)
+        loss_ms2pan = loss_L1(fake_pan, pan)
 
         fake_lms = model_hr2lr(res)  # fake_hms = res
-        loss_ms2ls = loss_func0(fake_lms, lms)
+        loss_ms2ls = loss_L1(fake_lms, lms)
     
     return loss, loss_ms2pan, loss_ms2ls
 ###################################################################
@@ -208,11 +208,11 @@ def train(training_data_loader, validate_data_loader, loss_mode, coef_extra=0.02
 
 
 if __name__ == "__main__":
-    train_set = DatasetProc4Physic('../data/new_tra(WV3)_0032-0032.h5', pix_max_val)  # creat data for training
+    train_set = DatasetProc4Physic('../data/tra(%s)_0032-0032.h5' % (sensor), pix_max_val)  # creat data for training
     training_data_loader = DataLoader(dataset=train_set, num_workers=0, batch_size=batch_size, shuffle=True,
                                   pin_memory=True, drop_last=True)  # put training data to DataLoader for batches
 
-    validate_set = DatasetProc4Physic('../data/new_val(WV3)_0032-0032.h5', pix_max_val)  # creat data for validation
+    validate_set = DatasetProc4Physic('../data/val(%s)_0032-0032.h5' % (sensor), pix_max_val)  # creat data for validation
     validate_data_loader = DataLoader(dataset=validate_set, num_workers=0, batch_size=batch_size, shuffle=False,
                                       pin_memory=True, drop_last=True)  # put training data to DataLoader for batches
 

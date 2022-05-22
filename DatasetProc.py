@@ -61,3 +61,23 @@ def load_myset(file_path):
     assert (shape_size == 4)
 
     return lms, pan, gt, ums
+
+
+def load_myset_FS(file_path):
+    ## ===== case1: NxCxHxW
+    data = h5py.File(file_path, mode='r')
+    dataset_names = list(data.keys())
+    lms = data["LRMSS"][...]  # NxCxHxW=0,1,2,3
+    lms = lms.transpose(3, 2, 0, 1)
+    shape_size = len(lms.shape)
+
+    pan = data["PANS"][...]
+    pan = pan.transpose(3, 2, 0, 1)
+
+    ums = data["USMSS"][...]
+    ums = ums.transpose(3, 2, 0, 1)
+
+    assert (shape_size == 4)
+
+    return lms, pan, ums
+

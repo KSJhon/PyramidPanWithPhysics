@@ -104,6 +104,6 @@ def test(file_path):
 # ------------------- Main Function (Run first) -------------------
 ###################################################################
 if __name__ == '__main__':
-	file_path = "../data/tst(%s)_0064-0064.h5" % (sensor)
+    file_path = "../data/tst(%s)_0064-0064.h5" % (sensor)
     test(file_path)
 

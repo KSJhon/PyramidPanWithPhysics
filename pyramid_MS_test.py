@@ -24,7 +24,7 @@ def test(file_path):
     lms, pan, gt, ums = load_myset(file_path)
     model = PyramidInjection(ms_channels, 3).to(device).eval()
     weight = torch.load(ckpt)
-    model.load_state_dict(weight)
+    model.load_state_dict(weight, device)
     fo = open("result.txt", "a")
     print("Name of the model: ", ckpt)
     print('%s\t%s' % (str(datetime.datetime.now()), ckpt), file=fo)

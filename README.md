@@ -4,7 +4,7 @@
 
 This repository contains a copy of the code used in the paper "P3Net: Pansharpening via Pyramidal Detail Injection with Deep Physical Constraints".
 
-##If you used this code, please kindly consider citing the following paper:
+# If you used this code, please kindly consider citing the following paper:
 
 @article{jon2022P3Net, author={Jon, Kyongson and Liu, Jun and Deng, Liang-Jian and Zhu, Wensheng},
   journal={IEEE Transactions on Geoscience and Remote Sensing}, 
